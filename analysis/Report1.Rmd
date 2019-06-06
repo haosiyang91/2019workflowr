@@ -1,0 +1,73 @@
+---
+title: "2019 Bootcamp Report 1"
+output:
+  workflowr::wflow_html:
+    toc: false
+editor_options:
+  chunk_output_type: console
+---
+Batch effect can be a cause of lack of reproducibility. Here we demonstrate batch effect with the data set in the study from Spielman group. [^1]
+
+[^1]:Spielman, R. et al. Common genetic variants account for differences in gene expression among ethnic groups. *Nature Genetics*. **39**, pages 226–231 (2007)
+
+```{r message=FALSE, warning=FALSE}
+
+# load libraries and datasets
+# source("http://bioconductor.org/biocLite.R")
+# biocLite("Biobase")
+# biocLite("genefilter")
+# devtools::install_github("genomicsclass/GSE5859")
+
+library(Biobase)
+library(rafalib)
+library(genefilter)
+library(GSE5859)
+data(GSE5859)
+```
+```{r }
+# gene expression levels  
+geneExpression = exprs(e)
+```
+
+# Data collection dates
+```{r }
+# print date info
+sampleInfo = pData(e)
+head(sampleInfo$date)
+```
+
+Check years that the data from different ethnic groups were collected. We can immediately see that year and ethnicity are almost completely confounded.
+```{r }
+# Output: print a table of year vs ethnic groups
+year = factor( format(sampleInfo$date,"%y") )
+tab = table(year,sampleInfo$ethnicity)
+print(tab)
+```
+# Differential expression analysis
+```{r }
+##remove control genes
+out <- grep("AFFX",rownames(geneExpression))
+
+```
+- We first use a t-test to perform differential expression analysis between CEU and ASN.
+
+```{r }
+eth <- sampleInfo$ethnicity
+ind<- which(eth%in%c("CEU","ASN"))
+res1 <- rowttests(geneExpression[-out,ind],droplevels(eth[ind]))
+
+```
+- We then perform the same analysis between 2002 vs 2003 within CEU.
+
+```{r }
+ind <- which(year%in%c("02","03") & eth=="CEU")
+res2 <- rowttests(geneExpression[-out,ind],droplevels(year[ind]))
+
+```
+- We plot histograms for p-values as in Akey paper. 
+```{r }
+mypar(1,2)
+hist(res1$p, main="p-value of CEU vs ASN")
+hist(res2$p, main="p-value of 2002 vs 2003 for CEU")
+```
+
